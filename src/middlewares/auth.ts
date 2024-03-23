@@ -21,7 +21,6 @@ const authMiddleware = async (
   res: Response,
   next: NextFunction
 ) => {
-console.log(req.headers)
   // Extract the authorization header
   const authHeader = req.headers.authorization;
   // Check if the authorization header is present

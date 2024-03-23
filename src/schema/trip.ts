@@ -1,7 +1,5 @@
 import { z } from "zod";
-
-const BusType = z.enum(["AC", "NON_AC"]);
-const SeatType = z.enum(["SLEEPER", "SEATER"]);
+import { BusType, SeatType, SortBy, SortOrder } from "./utils";
 
 export const TripSchema = z.object({
   originId: z.number().int(),
@@ -13,9 +11,6 @@ export const TripSchema = z.object({
   totalSeats: z.number().int(), // Assuming it's an integer
   farePerSeat: z.string(), // Assuming it's a decimal number
 });
-
-const SortBy = z.enum(["departure", "farePerSeat","totalSeats"]);
-const SortOrder = z.enum(["ASC", "DESC"]);
 
 export const SearchTripSchema = z.object({
   originId: z.string().min(1, { message: "originId should not be empty" }),
@@ -47,5 +42,4 @@ export const SearchTripSchema = z.object({
   busType: BusType.optional(),
   sortBy: SortBy.optional(),
   sortOrder: SortOrder.optional()
-  // passengerCount: z.number().optional(),
 });

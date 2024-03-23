@@ -14,8 +14,8 @@ datasource db {
 }
 
 enum Role {
-  ADMIN
-  USER
+  admin
+  customer
 }
 
 model User {
@@ -24,7 +24,7 @@ model User {
   email     String    @unique
   password  String
   phone     String
-  role      Role      @default(USER)
+  role      Role      @default(customer)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   Booking   Booking[]
@@ -68,17 +68,17 @@ enum SeatType {
 }
 
 model Trip {
-  id              Int       @id @default(autoincrement())
+  id              Int      @id @default(autoincrement())
   originId        Int
   destinationId   Int
-  origin          Location  @relation("Trip Origin", fields: [originId], references: [id])
-  destination     Location  @relation("Trip Destination", fields: [destinationId], references: [id])
+  origin          Location @relation("Trip Origin", fields: [originId], references: [id])
+  destination     Location @relation("Trip Destination", fields: [destinationId], references: [id])
   tripDate        String
   departure       DateTime
   arrival         DateTime
   durationInHours Int
   busId           String
-  bus             Bus       @relation("Trip Bus", fields: [busId], references: [id])
+  bus             Bus      @relation("Trip Bus", fields: [busId], references: [id])
   busType         BusType
   seatType        SeatType
   totalSeats      Int
@@ -86,7 +86,7 @@ model Trip {
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  bookings   Booking[] @relation("Trip Details")
+  bookings  Booking[] @relation("Trip Details")
 
   @@map("trip")
 }
@@ -100,7 +100,7 @@ model PassengerDetails {
   id              Int    @id @default(autoincrement())
   seatNumber      String
   passengerName   String
-  passengerAge    String
+  passengerAge    Int
   passengerGender Gender
 
   @@map("passenger details")
@@ -118,7 +118,7 @@ model Booking {
   status          BookingStatus
   seatNumber      String
   passengerName   String
-  passengerAge    String
+  passengerAge    Int
   passengerGender Gender
   fare            String
   userId          Int

@@ -5,6 +5,7 @@ import { BadRequestsException } from "../exceptions/bad-requests";
 import { LocationSchema } from "../schema/location";
 import { NotFoundException } from "../exceptions/not-found";
 import { Booking, PassengerDetails } from "@prisma/client";
+import { BookingsSchemaGroupedByTrip } from "../schema/bookings";
 
 export const generateRandomString = () => {
   const characters =
@@ -17,7 +18,7 @@ export const generateRandomString = () => {
 };
 
 export const createBooking = async (req: Request, res: Response) => {
-  const { tripId, bookings } = req.body;
+  const { tripId, bookings } = BookingsSchemaGroupedByTrip.parse(req.body);
 
   const trip = await prismaClient.trip.findFirst({
     where: { id: tripId },
@@ -26,6 +27,29 @@ export const createBooking = async (req: Request, res: Response) => {
     throw new NotFoundException("Trip not found!", ErrorCode.TRIP_NOT_FOUND);
   }
 
+  const updatedTrip = await prismaClient.trip.update({
+    where: { id: tripId },
+    data: { totalSeats: trip.totalSeats - bookings.length },
+  });
+
+  const existingBooking = await prismaClient.booking.findFirst({
+    where: {
+      tripId: tripId,
+      seatNumber: {
+        in: bookings.map((booking) => booking.seatNumber),
+      },
+    },
+  });
+
+  if (existingBooking) {
+    console.log(existingBooking);
+    if (existingBooking) {
+      throw new BadRequestsException(
+        "Rebooking is not allowed",
+        ErrorCode.BOOKING_ALREADY_EXISTS
+      );
+    }
+  }
   // Create bookings for each booking object
   const createdBookings = await Promise.all(
     bookings.map(async (bookingObj: PassengerDetails) => {
@@ -72,15 +96,94 @@ export const listBookings = async (req: Request, res: Response) => {
     take: size,
 
     include: {
-      trip: true, // Include trip origin location
+      trip: {
+        include: {
+          origin: {
+            select: {
+              id: true,
+              name: true,
+              shortCode: true,
+            },
+          },
+          destination: {
+            select: {
+              id: true,
+              name: true,
+              shortCode: true,
+            },
+          },
+        },
+      },
     },
   });
+
+  const filteredBookings = bookings.map(
+    ({
+      createdAt,
+      updatedAt,
+      userId,
+      tripId,
+      trip: { createdAt: tripCreatedAt, updatedAt: tripUpdatedAt, ...trip },
+      ...rest
+    }) => ({
+      ...rest,
+      trip: { ...trip },
+    })
+  );
 
   const bookingsCount = await prismaClient.booking.count();
 
   res.json({
     success: true,
     message: "Fetched all bookings",
-    data: { bookings, resultCount: bookingsCount },
+    data: { bookings: filteredBookings, resultCount: bookingsCount },
+  });
+};
+
+export const getBookingsOfUser = async (req: Request, res: Response) => {
+  const userId = req.user.id;
+  console.log("userId", userId);
+  const trips = await prismaClient.trip.findMany({
+    include: {
+      bookings: {
+        where: {
+          userId,
+        },
+      },
+      origin: {
+        select: {
+          id: true,
+          name: true,
+          shortCode: true,
+        },
+      },
+      destination: {
+        select: {
+          id: true,
+          name: true,
+          shortCode: true,
+        },
+      },
+    },
+  });
+  const filteredTrips = trips
+    .filter((trip) => trip.bookings.length > 0)
+    .map(({ createdAt, updatedAt, bookings, ...rest }) => ({
+      ...rest,
+      bookings: bookings.map(
+        ({ createdAt, updatedAt, userId, tripId, ...bookingRest }) =>
+          bookingRest
+      ),
+    }));
+
+  const bookingsCount = await prismaClient.booking.count({ where: { userId } });
+
+  res.json({
+    success: true,
+    message: "Fetched all bookings of the user",
+    data: {
+      bookings: filteredTrips,
+      resultCount: bookingsCount,
+    },
   });
 };

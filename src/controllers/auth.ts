@@ -7,6 +7,7 @@ import { BadRequestsException } from "../exceptions/bad-requests";
 import { ErrorCode } from "../exceptions/root";
 import { SignInSchema, SignUpSchema } from "../schema/users";
 import { NotFoundException } from "../exceptions/not-found";
+import { User } from "@prisma/client";
 
 export const signup = async (
   req: Request,
@@ -29,7 +30,7 @@ export const signup = async (
       name,
       email,
       password: hashSync(password, 10),
-      role: "USER",
+      role: "customer",
       phone,
     },
   });
@@ -104,7 +105,7 @@ export const signin = async (
 
 export const logout = (req: Request, res: Response) => {
   try {
-    console.log('req')
+    console.log("req");
     console.log(req);
 
     // Respond with a success message
@@ -114,4 +115,61 @@ export const logout = (req: Request, res: Response) => {
     console.error(error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
+};
+
+export const bulkSignUp = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const usersData: User[] = req.body.users; // Assuming req.body.users contains an array of user objects
+
+  usersData.map((user) => SignUpSchema.parse(user));
+  const hashedUsersData = usersData.map((user) => ({
+    ...user,
+    password: hashSync(user.password, 10),
+    role: "customer",
+  }));
+  const existingEmails = await prismaClient.user.findMany({
+    where: {
+      email: {
+        in: hashedUsersData.map((user) => user.email),
+      },
+    },
+    select: {
+      email: true,
+    },
+  });
+
+  const existingEmailSet = new Set(existingEmails.map((user) => user.email));
+  const duplicateEmails = hashedUsersData.filter((user) =>
+    existingEmailSet.has(user.email)
+  );
+
+  if (duplicateEmails.length > 0) {
+    throw new BadRequestsException(
+      "Some users already exist!",
+      ErrorCode.USER_ALREADY_EXISTS,
+      duplicateEmails.map((user) => user.email)
+    );
+  }
+
+  const createdUsers = hashedUsersData.map(async (user) => {
+    await prismaClient.user.createMany({
+      data: {
+        name: user.name,
+        email: user.email,
+        password: user.password,
+        role: "customer",
+        phone: user.phone,
+      },
+      skipDuplicates: true,
+    });
+  });
+
+  res.json({
+    success: true,
+    message: "Bulk registration successful! Please verify your emails.",
+    data: createdUsers,
+  });
 };

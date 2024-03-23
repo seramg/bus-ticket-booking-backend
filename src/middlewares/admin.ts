@@ -8,7 +8,7 @@ export const adminMiddleware = (
   next: NextFunction
 ) => {
   const user = req.user;
-  if (user.role === "ADMIN") {
+  if (user.role === "admin") {
     next();
   } else {
     next(new UnauthorizedException("Unauthorized", ErrorCode.UNAUTHORIZED));
