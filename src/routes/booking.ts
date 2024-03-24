@@ -5,6 +5,7 @@ import adminMiddleware from "../middlewares/admin";
 import { createTrip, listTrips, searchTrips } from "../controllers/trips";
 import {
   createBooking,
+  getBookingsByPnr,
   getBookingsOfUser,
   listBookings,
 } from "../controllers/bookings";
@@ -22,5 +23,8 @@ bookingRoutes.get(
   [authMiddleware],
   errorHandler(getBookingsOfUser)
 );
-
+bookingRoutes.get(
+  "/pnr/:pnrNumber",
+  errorHandler(getBookingsByPnr)
+);
 export default bookingRoutes;

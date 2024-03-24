@@ -120,7 +120,7 @@ export const createBus = async (req: Request, res: Response) => {
     },
   });
 
-  res.json({
+  return res.json({
     success: true,
     message: "Added new bus",
     data: {
@@ -135,7 +135,7 @@ export const createBus = async (req: Request, res: Response) => {
 
 export const listBuses = async (req: Request, res: Response) => {
   const buses = await prismaClient.bus.findMany();
-  res.json({
+  return res.json({
     success: true,
     message: "Fetched all bus",
     data: { buses },

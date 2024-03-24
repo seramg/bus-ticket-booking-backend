@@ -2,25 +2,25 @@ import { Response, Request, NextFunction } from "express";
 import { prismaClient } from "..";
 import { compareSync, hashSync } from "bcrypt";
 import * as jwt from "jsonwebtoken";
-import { ACCESS_TOKEN } from "../secrets";
+import { ACCESS_TOKEN, REFRESH_TOKEN } from "../secrets";
 import { BadRequestsException } from "../exceptions/bad-requests";
 import { ErrorCode } from "../exceptions/root";
 import { SignInSchema, SignUpSchema } from "../schema/users";
 import { NotFoundException } from "../exceptions/not-found";
 import { User } from "@prisma/client";
+import { MethodNotAllowed } from "../exceptions/method-not-allowed";
 
 export const signup = async (
   req: Request,
   res: Response,
-  next: NextFunction
 ) => {
   SignUpSchema.parse(req.body);
   const { email, password, name, phone } = req.body;
 
   let user = await prismaClient.user.findFirst({ where: { email } });
   if (user) {
-    throw new BadRequestsException(
-      "User already exists!",
+    throw new MethodNotAllowed(
+      "User already exists",
       ErrorCode.USER_ALREADY_EXISTS
     );
   }
@@ -35,7 +35,7 @@ export const signup = async (
     },
   });
 
-  res.json({
+  return res.json({
     success: true,
     message: "Registration successful! Please verify your email.",
     data: {
@@ -58,7 +58,6 @@ export const signup = async (
 export const signin = async (
   req: Request,
   res: Response,
-  next: NextFunction
 ) => {
   const { email, password } = SignInSchema.parse(req.body);
 
@@ -86,11 +85,11 @@ export const signin = async (
     {
       userId: user.id,
     },
-    ACCESS_TOKEN,
+    REFRESH_TOKEN,
     { expiresIn: "1d" }
   );
 
-  res.json({
+  return res.json({
     success: true,
     message: "Email verified and login",
     data: {
@@ -120,7 +119,6 @@ export const logout = (req: Request, res: Response) => {
 export const bulkSignUp = async (
   req: Request,
   res: Response,
-  next: NextFunction
 ) => {
   const usersData: User[] = req.body.users; // Assuming req.body.users contains an array of user objects
 
@@ -167,9 +165,38 @@ export const bulkSignUp = async (
     });
   });
 
-  res.json({
+  return res.json({
     success: true,
     message: "Bulk registration successful! Please verify your emails.",
     data: createdUsers,
+  });
+};
+
+export const renewToken = (req: Request, res: Response, next: NextFunction) => {
+  const user = req.user;
+
+  const accessToken = jwt.sign(
+    {
+      userId: user.id,
+    },
+    ACCESS_TOKEN,
+    { expiresIn: "1h" }
+  );
+
+  const refreshToken = jwt.sign(
+    {
+      userId: user.id,
+    },
+    REFRESH_TOKEN,
+    { expiresIn: "1d" }
+  );
+
+  return res.json({
+    success: true,
+    message: "New tokens generated.",
+    data: {
+      accessToken,
+      refreshToken,
+    },
   });
 };

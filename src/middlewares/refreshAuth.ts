@@ -2,7 +2,7 @@ import { Response, Request, NextFunction } from "express";
 import { UnauthorizedException } from "../exceptions/unauthorized";
 import { ErrorCode } from "../exceptions/root";
 import * as jwt from "jsonwebtoken";
-import { ACCESS_TOKEN } from "../secrets";
+import { ACCESS_TOKEN, REFRESH_TOKEN } from "../secrets";
 import { prismaClient } from "..";
 
 import { User } from "@prisma/client";
@@ -16,7 +16,7 @@ declare global {
   }
 }
 
-const authMiddleware = async (
+const refreshAuthMiddleware = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -27,7 +27,7 @@ const authMiddleware = async (
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({
       success: false,
-      message: "Authorization header not found or invalid format.",
+      message: "Refresh auth header not found.",
       errorDetail: {},
     });
   }
@@ -37,7 +37,7 @@ const authMiddleware = async (
 
   try {
     //3. if the token is present, verify that token and extract the payload
-    const payload = jwt.verify(token, ACCESS_TOKEN) as any;
+    const payload = jwt.verify(token, REFRESH_TOKEN) as any;
     //4.to get the user from payload
     const user = await prismaClient.user.findFirst({
       where: { id: payload.userId },
@@ -71,4 +71,4 @@ const authMiddleware = async (
     }
   }
 };
-export default authMiddleware;
+export default refreshAuthMiddleware;

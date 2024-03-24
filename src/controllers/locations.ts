@@ -25,7 +25,7 @@ export const createLocation = async (req: Request, res: Response) => {
     },
   });
 
-  res.json({
+  return res.json({
     success: true,
     message: "Added new city",
     data: {
@@ -42,7 +42,7 @@ export const createLocation = async (req: Request, res: Response) => {
 
 export const listLocations = async (req: Request, res: Response) => {
   const locations = await prismaClient.location.findMany();
-  res.json({
+  return res.json({
     success: true,
     message: "Fetched all cities",
     data: { locations },
@@ -97,7 +97,7 @@ export const bulkLocations = async (req: Request, res: Response) => {
     });
   });
 
-  res.json({
+  return res.json({
     success: true,
     message: "Bulk locations creation successful! Please verify your emails.",
     data: createdLocations,

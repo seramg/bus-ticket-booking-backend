@@ -50,6 +50,7 @@ export const createBooking = async (req: Request, res: Response) => {
       );
     }
   }
+  const pnrNumber = generateRandomString();
   // Create bookings for each booking object
   const createdBookings = await Promise.all(
     bookings.map(async (bookingObj: PassengerDetails) => {
@@ -63,7 +64,7 @@ export const createBooking = async (req: Request, res: Response) => {
           passengerGender: bookingObj.passengerGender,
           fare: trip.farePerSeat,
           userId: req.user.id, // Assuming userId is provided in the booking object
-          pnrNumber: generateRandomString(), // Assuming pnrNumber is provided in the booking object
+          pnrNumber,
         },
         include: {
           trip: true,
@@ -77,7 +78,7 @@ export const createBooking = async (req: Request, res: Response) => {
     })
   );
 
-  res.json({
+  return res.json({
     success: true,
     message: "Booked Successfully",
     data: createdBookings,
@@ -133,7 +134,7 @@ export const listBookings = async (req: Request, res: Response) => {
 
   const bookingsCount = await prismaClient.booking.count();
 
-  res.json({
+  return res.json({
     success: true,
     message: "Fetched all bookings",
     data: { bookings: filteredBookings, resultCount: bookingsCount },
@@ -178,12 +179,69 @@ export const getBookingsOfUser = async (req: Request, res: Response) => {
 
   const bookingsCount = await prismaClient.booking.count({ where: { userId } });
 
-  res.json({
+  return res.json({
     success: true,
     message: "Fetched all bookings of the user",
     data: {
       bookings: filteredTrips,
       resultCount: bookingsCount,
     },
+  });
+};
+
+export const getBookingsByPnr = async (req: Request, res: Response) => {
+  const { pnrNumber } = req.params;
+
+  const trip = await prismaClient.trip.findFirst({
+    where: {
+      bookings: {
+        some: {
+          pnrNumber: pnrNumber,
+        },
+      },
+    },
+    include: {
+      bookings: {
+        where: {
+          pnrNumber,
+        },
+      },
+      origin: {
+        select: {
+          id: true,
+          name: true,
+          shortCode: true,
+        },
+      },
+      destination: {
+        select: {
+          id: true,
+          name: true,
+          shortCode: true,
+        },
+      },
+    },
+  });
+
+  if (!trip) {
+    return res.json({
+      success: false,
+      message: "Couldn't find booking with the given PNR.",
+      data: {},
+    });
+  }
+
+  const filteredTrip = {
+    ...trip,
+
+    bookings: trip.bookings.map(
+      ({ createdAt, updatedAt, userId, tripId, ...bookingRest }) => bookingRest
+    ),
+  };
+
+  return res.json({
+    success: true,
+    message: "Fetched all bookings with the given PNR",
+    data: filteredTrip,
   });
 };

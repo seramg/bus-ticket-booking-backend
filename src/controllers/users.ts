@@ -13,7 +13,7 @@ export const listUsers = async (req: Request, res: Response) => {
     skip,
     take: size,
   });
-  res.json({
+  return res.json({
     success: true,
     message: "Fetched all Users",
     data: { users, resultCount: users.length },

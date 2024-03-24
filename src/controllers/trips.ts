@@ -51,7 +51,7 @@ export const createTrip = async (req: Request, res: Response) => {
     },
   });
 
-  res.json({
+  return res.json({
     success: true,
     message: "Added new trip",
     data: {
@@ -84,7 +84,7 @@ export const listTrips = async (req: Request, res: Response) => {
     },
   });
 
-  res.json({
+  return res.json({
     success: true,
     message: "Fetched all trips",
     data: { trips },
@@ -144,7 +144,7 @@ export const searchTrips = async (req: Request, res: Response) => {
     take: limit,
   });
 
-  res.json({
+  return res.json({
     success: true,
     message: "Fetched all trips",
     data: { trips, resultCount: count },
@@ -161,14 +161,14 @@ export const getTripById = async (req: Request, res: Response) => {
   });
 
   if (!trip) {
-    res.json({
+    return res.json({
       success: false,
       message: "Fetched trip details",
       data: { trip: null },
     });
   }
 
-  res.json({
+  return res.json({
     success: true,
     message: "Fetched trip details",
     data: { trip },
