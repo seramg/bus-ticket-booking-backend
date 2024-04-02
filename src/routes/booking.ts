@@ -4,6 +4,7 @@ import authMiddleware from "../middlewares/auth";
 import adminMiddleware from "../middlewares/admin";
 import { createTrip, listTrips, searchTrips } from "../controllers/trips";
 import {
+  cancelBooking,
   createBooking,
   getBookingsByPnr,
   getBookingsOfUser,
@@ -23,8 +24,12 @@ bookingRoutes.get(
   [authMiddleware],
   errorHandler(getBookingsOfUser)
 );
-bookingRoutes.get(
-  "/pnr/:pnrNumber",
-  errorHandler(getBookingsByPnr)
+bookingRoutes.get("/pnr/:pnrNumber", errorHandler(getBookingsByPnr));
+
+bookingRoutes.post(
+  "/cancel/:pnrNumber",
+  [authMiddleware],
+  errorHandler(cancelBooking)
 );
+
 export default bookingRoutes;

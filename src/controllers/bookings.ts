@@ -245,3 +245,38 @@ export const getBookingsByPnr = async (req: Request, res: Response) => {
     data: filteredTrip,
   });
 };
+
+export const cancelBooking = async (req: Request, res: Response) => {
+  const { pnrNumber } = req.params;
+  const userId = req.user.id
+
+  const bookingsToDlt = await prismaClient.booking.findMany({
+    where: {
+      pnrNumber,
+      userId
+    },
+  });
+
+  if (bookingsToDlt.length == 0) {
+    return res.json({
+      success: false,
+      message: "Couldn't find any bookings with the given PNR.",
+      data: {},
+    });
+  }
+
+  bookingsToDlt.map(
+    async (bookingToDlt) =>
+      await prismaClient.booking.delete({
+        where: {
+          id: bookingToDlt.id,
+        },
+      })
+  );
+
+  return res.json({
+    success: true,
+    message: "Canceled all bookings with the given PNR",
+    data: pnrNumber,
+  });
+};
